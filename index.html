@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Касса оркестра</title>
+<meta name="description" content="Учёт взносов, прихода и расхода оркестра">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Касса">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root {
+  --bg: #f5f5f7;
+  --bg-glass: rgba(245, 245, 247, .82);
+  --surface: #ffffff;
+  --sheet-bg: #f2f2f7;
+  --group-bg: #ffffff;
+  --seg-active: #ffffff;
+  --fill: rgba(120, 120, 128, .12);
+  --fill-2: rgba(120, 120, 128, .07);
+  --sep: rgba(60, 60, 67, .13);
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #8e8e93;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-soft: rgba(0, 113, 227, .1);
+  --pos: #248a3d;
+  --pos-soft: rgba(52, 199, 89, .15);
+  --neg: #d70015;
+  --neg-soft: rgba(255, 59, 48, .11);
+  --warn: #a14a00;
+  --warn-soft: rgba(255, 149, 0, .15);
+  --switch-on: #34c759;
+  --sidebar: rgba(240, 240, 244, .82);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 20px rgba(0, 0, 0, .04);
+  --shadow-lg: 0 30px 80px rgba(0, 0, 0, .22), 0 2px 10px rgba(0, 0, 0, .08);
+  --radius: 18px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --bg-glass: rgba(0, 0, 0, .72);
+    --surface: #1c1c1e;
+    --sheet-bg: #1c1c1e;
+    --group-bg: #2c2c2e;
+    --seg-active: #636366;
+    --fill: rgba(120, 120, 128, .26);
+    --fill-2: rgba(120, 120, 128, .14);
+    --sep: rgba(84, 84, 88, .45);
+    --text: #f5f5f7;
+    --text-2: #a1a1a6;
+    --text-3: #8e8e93;
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-soft: rgba(10, 132, 255, .2);
+    --pos: #30d158;
+    --pos-soft: rgba(48, 209, 88, .16);
+    --neg: #ff453a;
+    --neg-soft: rgba(255, 69, 58, .17);
+    --warn: #ff9f0a;
+    --warn-soft: rgba(255, 159, 10, .16);
+    --switch-on: #30d158;
+    --sidebar: rgba(22, 22, 24, .86);
+    --shadow: none;
+    --shadow-lg: 0 30px 80px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.005em;
+}
+button { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic.sm { width: 16px; height: 16px; }
+.neg { color: var(--neg); }
+.pos { color: var(--pos); }
+.muted { color: var(--text-2); }
+[hidden] { display: none !important; }
+
+/* ── Каркас ── */
+.app { display: grid; grid-template-columns: 256px minmax(0, 1fr); min-height: 100vh; }
+.sidebar {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 22px 12px 16px;
+  background: var(--sidebar);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-right: 1px solid var(--sep);
+  user-select: none;
+}
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 20px; }
+.brand-icon { width: 40px; height: 40px; border-radius: 10px; flex: none; box-shadow: 0 4px 12px rgba(255, 55, 95, .3); }
+.brand-name { font-weight: 650; font-size: 15px; letter-spacing: -.01em; }
+.brand-sub { font-size: 12px; color: var(--text-2); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 8px;
+  color: var(--text); font-weight: 500;
+}
+.nav-item .ic { color: var(--accent); }
+.nav-item:hover { background: var(--fill-2); }
+.nav-item.active { background: var(--accent); color: #fff; }
+.nav-item.active .ic { color: #fff; }
+.nav-badge { margin-left: auto; font-size: 12px; color: var(--text-3); font-weight: 500; }
+.nav-item.active .nav-badge { color: rgba(255, 255, 255, .8); }
+.side-foot { margin-top: auto; padding: 12px 4px 0; }
+
+main { padding: 0 44px 64px; min-width: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; }
+.toolbar {
+  position: sticky; top: 0; z-index: 5;
+  margin: 0 -44px; padding: 30px 44px 16px;
+  background: var(--bg-glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+.toolbar-in { max-width: 1120px; margin: 0 auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -.024em; }
+.subtitle { color: var(--text-2); margin-top: 3px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Кнопки и контролы ── */
+.btn {
+  height: 36px; padding: 0 16px; border-radius: 980px; border: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background .15s, transform .1s;
+}
+.btn:active { transform: scale(.97); }
+.btn .ic { width: 17px; height: 17px; stroke-width: 2; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: var(--fill); color: var(--text); }
+.btn-secondary:hover { background: var(--sep); }
+.btn-tinted { background: var(--accent-soft); color: var(--accent); }
+.btn-sm { height: 30px; padding: 0 12px; font-size: 13px; }
+.btn-block { width: 100%; }
+.btn-plain { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 6px 2px; font-size: 16px; }
+.btn-plain.strong { font-weight: 600; }
+
+.search { position: relative; }
+.search .ic { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-3); width: 16px; height: 16px; }
+.search input {
+  height: 36px; width: 240px; border: 0; border-radius: 10px;
+  background: var(--fill); color: var(--text);
+  padding: 0 12px 0 32px; font: inherit; outline: none;
+}
+.search input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+.search input::placeholder { color: var(--text-3); }
+
+.seg { display: inline-flex; background: var(--fill); border-radius: 9px; padding: 2px; gap: 2px; max-width: 100%; }
+.seg button, .seg label span {
+  display: block; border: 0; background: none; cursor: pointer;
+  padding: 6px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--text);
+  white-space: nowrap;
+}
+.seg button.on, .seg input:checked + span { background: var(--seg-active); box-shadow: 0 1px 3px rgba(0, 0, 0, .14), 0 0 0 .5px rgba(0, 0, 0, .04); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { position: relative; }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin: 4px 0 8px; }
+
+/* ── Карточки ── */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; }
+.card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.card-t { font-size: 17px; font-weight: 650; letter-spacing: -.012em; margin: 0; }
+.card p { margin: 0 0 14px; color: var(--text-2); }
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.two { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+.stack { display: grid; gap: 16px; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.eyebrow { font-size: 13px; font-weight: 600; color: var(--text-2); }
+
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 28px 32px; }
+.hero-value { font-size: 56px; line-height: 1.05; font-weight: 700; letter-spacing: -.035em; margin: 4px 0 8px; }
+.hero-meta { color: var(--text-2); display: flex; gap: 6px 18px; flex-wrap: wrap; }
+.hero-meta b { color: var(--text); font-weight: 600; }
+.ring-box { display: flex; align-items: center; gap: 16px; }
+.ring { width: 88px; height: 88px; }
+.ring circle { fill: none; stroke-width: 9; }
+.ring-track { stroke: var(--fill); }
+.ring-val { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .6s cubic-bezier(.2, .9, .3, 1); }
+.ring-txt { font-size: 13px; color: var(--text-2); }
+.ring-txt b { display: block; font-size: 22px; color: var(--text); font-weight: 650; letter-spacing: -.02em; }
+
+.stat .value { font-size: 28px; font-weight: 650; letter-spacing: -.025em; margin: 6px 0 2px; }
+.stat .hint { font-size: 13px; color: var(--text-2); }
+.stat a.hint { color: var(--accent); }
+
+.grp-row + .grp-row { margin-top: 18px; }
+.grp-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.grp-name { font-weight: 600; }
+.grp-meta { font-size: 13px; color: var(--text-2); display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; }
+.bar { height: 8px; border-radius: 4px; background: var(--fill); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 4px; background: var(--accent); transition: width .6s cubic-bezier(.2, .9, .3, 1); }
+
+.cat { display: grid; grid-template-columns: minmax(110px, 190px) minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 6px 0; }
+.cat-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-val { font-size: 14px; font-weight: 600; text-align: right; min-width: 90px; }
+.cat .bar { height: 10px; border-radius: 5px; background: transparent; }
+.cat .bar > i { border-radius: 4px; min-width: 4px; }
+
+.callout { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--warn-soft); }
+.callout .ic { color: var(--warn); }
+.callout.info { background: var(--accent-soft); }
+.callout.info .ic { color: var(--accent); }
+.callout div { flex: 1; min-width: 0; }
+
+/* ── Списки ── */
+.list { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.card .list { box-shadow: none; border-radius: 0; margin: 0 -24px -22px; background: transparent; }
+.li { display: flex; align-items: center; gap: 14px; padding: 11px 18px; position: relative; cursor: pointer; min-height: 60px; }
+.li + .li::before { content: ""; position: absolute; top: 0; left: 70px; right: 0; height: 1px; background: var(--sep); }
+.li:hover { background: var(--fill-2); }
+.li:active { background: var(--fill); }
+.li-main { flex: 1; min-width: 0; }
+.li-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-sub { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li-amt { text-align: right; white-space: nowrap; }
+.li-amt b { display: block; font-weight: 600; }
+.li-amt span { font-size: 12px; color: var(--text-2); }
+.av {
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, #a8adb8, #868b97); color: #fff;
+  font-size: 14px; font-weight: 600; letter-spacing: .02em;
+}
+.op { width: 38px; height: 38px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+.op .ic { width: 19px; height: 19px; stroke-width: 2; }
+.op.in { background: var(--pos-soft); color: var(--pos); }
+.op.out { background: var(--neg-soft); color: var(--neg); }
+.sum-in { color: var(--pos); font-weight: 600; white-space: nowrap; }
+.sum-out { color: var(--text); font-weight: 600; white-space: nowrap; }
+.act-slot { width: 76px; display: flex; justify-content: flex-end; flex: none; }
+.pill-slot { width: 92px; display: flex; justify-content: flex-end; flex: none; }
+
+.pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 980px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.pill.paid { background: var(--pos-soft); color: var(--pos); }
+.pill.partial { background: var(--warn-soft); color: var(--warn); }
+.pill.none { background: var(--neg-soft); color: var(--neg); }
+.pill.left, .pill.plain { background: var(--fill); color: var(--text-2); }
+.pill.free { background: var(--accent-soft); color: var(--accent); }
+.dot { display: none; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.paid { background: var(--pos); }
+.dot.partial { background: var(--warn); }
+.dot.none { background: var(--neg); }
+.dot.left, .dot.free { background: var(--text-3); }
+
+.section-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 24px 6px 8px; }
+.section-h:first-child { padding-top: 8px; }
+.section-t { font-size: 20px; font-weight: 650; letter-spacing: -.018em; }
+.section-m { font-size: 13px; color: var(--text-2); text-align: right; }
+.empty { text-align: center; padding: 56px 20px; color: var(--text-2); }
+.empty b { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
+
+/* ── Формы ── */
+.group-title { font-size: 13px; color: var(--text-2); padding: 0 16px 6px; margin-top: 22px; }
+.form-group { background: var(--surface); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.sheet .form-group { background: var(--group-bg); margin: 0 16px; box-shadow: none; }
+.sheet .group-title { padding: 0 32px 6px; margin-top: 18px; }
+.f-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; position: relative; }
+.f-row + .f-row::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+.f-row:focus-within { background: var(--fill-2); }
+.f-label { flex: none; width: 140px; }
+.f-row input:not([type=checkbox]):not([type=radio]), .f-row select, .f-row textarea {
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text);
+  font: inherit; padding: 12px 0; outline: none; text-align: right;
+}
+.f-row select { text-align-last: right; cursor: pointer; }
+.f-row select option, .f-row select optgroup { color: initial; text-align: left; }
+.f-row textarea { text-align: left; resize: vertical; min-height: 64px; }
+.f-row.tall { align-items: flex-start; }
+.f-row.tall .f-label { padding-top: 12px; }
+.f-row input::placeholder, .f-row textarea::placeholder { color: var(--text-3); }
+.f-row .seg { margin-left: auto; }
+.f-row.link { cursor: pointer; color: var(--accent); }
+.f-row.link span { flex: 1; }
+.f-row.link .ic:last-child { color: var(--text-3); }
+.f-row.link.danger { color: var(--neg); }
+.f-row .f-val { margin-left: auto; color: var(--text-2); text-align: right; }
+.f-hint { font-size: 13px; color: var(--text-2); padding: 6px 16px 0; }
+.sheet .f-hint { padding: 6px 32px 0; }
+.switch {
+  appearance: none; -webkit-appearance: none; margin: 0 0 0 auto;
+  width: 51px; height: 31px; border-radius: 16px; background: var(--fill);
+  position: relative; cursor: pointer; flex: none; transition: background .2s;
+}
+.switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%;
+  background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 1px 1px rgba(0, 0, 0, .16);
+  transition: transform .25s cubic-bezier(.2, .9, .3, 1);
+}
+.switch:checked { background: var(--switch-on); }
+.switch:checked::after { transform: translateX(20px); }
+.settings { max-width: 680px; }
+.settings .form-actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+
+/* ── Окна ── */
+.backdrop {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px;
+  background: rgba(0, 0, 0, .32); opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.backdrop.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  width: min(540px, 100%); max-height: calc(100vh - 48px); overflow: auto; overscroll-behavior: contain;
+  background: var(--sheet-bg); border-radius: 16px; box-shadow: var(--shadow-lg);
+  transform: translateY(18px) scale(.98); transition: transform .3s cubic-bezier(.2, .9, .3, 1);
+  padding-bottom: 18px;
+}
+.backdrop.open .sheet, .backdrop.open .alert { transform: none; }
+.sheet-head {
+  position: sticky; top: 0; z-index: 1;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 10px 18px; background: var(--sheet-bg); border-bottom: 1px solid var(--sep);
+}
+.sheet-head > :first-child { justify-self: start; }
+.sheet-head > :last-child { justify-self: end; }
+.sheet-title { font-weight: 600; }
+.sheet-danger {
+  display: block; width: calc(100% - 32px); margin: 18px 16px 0; height: 48px;
+  border: 0; border-radius: 12px; background: var(--group-bg); color: var(--neg); cursor: pointer;
+}
+.sheet-danger:hover { background: var(--neg-soft); }
+.sheet .list { margin: 0 16px; box-shadow: none; background: var(--group-bg); border-radius: 12px; }
+.sheet .li { min-height: 48px; padding: 8px 16px; }
+.sheet .li + .li::before { left: 16px; }
+.alert {
+  width: 290px; background: var(--sheet-bg); border-radius: 14px; text-align: center; overflow: hidden;
+  box-shadow: var(--shadow-lg); transform: scale(1.06); transition: transform .2s;
+}
+.alert-body { padding: 20px 18px 16px; }
+.alert-body b { display: block; font-size: 16px; margin-bottom: 4px; }
+.alert-body p { margin: 0; font-size: 13px; color: var(--text-2); }
+.alert-btns { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--sep); }
+.alert-btns button { border: 0; background: none; height: 48px; cursor: pointer; color: var(--accent); }
+.alert-btns button + button { border-left: 1px solid var(--sep); font-weight: 600; color: var(--neg); }
+.alert-btns button:hover { background: var(--fill-2); }
+
+.toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 60;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  padding: 10px 18px; border-radius: 980px; font-weight: 500; text-align: center;
+  background: rgba(36, 36, 38, .92); color: #fff;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+  transition: opacity .2s, transform .3s cubic-bezier(.2, .9, .3, 1);
+  width: max-content; max-width: calc(100vw - 32px);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.err { background: rgba(215, 0, 21, .94); }
+
+.fade-in { animation: fade .28s ease both; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ── Телефон ── */
+@media (max-width: 860px) {
+  .kpis { grid-template-columns: 1fr; }
+  .two { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar {
+    position: fixed; top: auto; bottom: 0; left: 0; right: 0; height: auto; z-index: 20;
+    flex-direction: row; justify-content: space-around; gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border-right: 0; border-top: 1px solid var(--sep);
+  }
+  #nav { display: contents; }
+  .brand, .side-foot, .nav-badge { display: none; }
+  .nav-item { flex: 1; flex-direction: column; gap: 2px; padding: 4px 2px; font-size: 11px; }
+  .nav-item:hover { background: none; }
+  .nav-item .ic { color: var(--text-3); width: 24px; height: 24px; }
+  .nav-item.active { background: none; color: var(--accent); }
+  .nav-item.active .ic { color: var(--accent); }
+  main { padding: 0 16px calc(92px + env(safe-area-inset-bottom)); }
+  .toolbar { margin: 0 -16px; padding: calc(14px + env(safe-area-inset-top)) 16px 12px; }
+  .toolbar-in { flex-direction: column; align-items: stretch; gap: 12px; }
+  h1 { font-size: 30px; }
+  .actions { flex-wrap: nowrap; }
+  .actions .search { flex: 1 1 auto; min-width: 0; }
+  .search input { width: 100%; height: 38px; font-size: 16px; }
+  .actions .btn { height: 38px; }
+  .hero { padding: 22px; }
+  .hero-value { font-size: 44px; }
+  .card { padding: 18px; }
+  .card .list { margin: 0 -18px -18px; }
+  .li { gap: 12px; padding: 10px 14px; }
+  .li + .li::before { left: 64px; }
+  .pill-slot { display: none; }
+  .dot { display: block; }
+  .act-slot { width: auto; }
+  .cat { grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) auto; gap: 10px; }
+  .f-label { width: 118px; }
+  .seg { overflow-x: auto; scrollbar-width: none; }
+  .filters .seg button { padding: 7px 12px; }
+  .f-label-auto { width: auto; }
+  .f-row .seg label span { padding: 7px 11px; }
+  .settings .form-actions .btn { width: 100%; height: 44px; }
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  /* Нижняя шторка, как в системных приложениях */
+  .backdrop { place-items: end center; padding: 0; }
+  .sheet {
+    width: 100%; max-height: calc(100vh - 28px - env(safe-area-inset-top));
+    border-radius: 14px 14px 0 0; transform: translateY(100%);
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+  .sheet::before { content: ""; display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--sep); margin: 6px auto 0; }
+  .sheet-head { top: 0; }
+  .backdrop.open .sheet { transform: none; }
+}
+@media print {
+  .sidebar, .actions, .act-slot, .filters { display: none !important; }
+  .app { display: block; }
+  .toolbar { position: static; background: none; backdrop-filter: none; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" aria-label="Разделы">
+    <div class="brand">
+      <img class="brand-icon" src="icon-192.png" alt="">
+      <div><div class="brand-name">Касса оркестра</div><div class="brand-sub" id="brand-sub">«Московия»</div></div>
+    </div>
+    <div id="nav"></div>
+    <div class="side-foot">
+      <button class="btn btn-secondary btn-block" data-action="export-xlsx"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 17v2.5h15V17"/></svg>Выгрузить в Excel</button>
+    </div>
+  </nav>
+  <main>
+    <header class="toolbar"><div class="toolbar-in" id="toolbar"></div></header>
+    <div class="wrap" id="view"></div>
+  </main>
+</div>
+
+<div class="backdrop" id="sheet-bd"><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="backdrop" id="alert-bd" style="z-index:55;place-items:center;padding:16px"><div class="alert" id="alert" role="alertdialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="import-file" accept=".json,application/json" hidden>
+
+<script src="xlsx.js"></script>
+<script>
+'use strict';
+
+// ─── Утилиты ────────────────────────────────────────────────────────────────
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const r2 = x => Math.round(x * 100) / 100;
+const sum = (arr, f) => r2(arr.reduce((a, x) => a + (typeof f === 'function' ? f(x) : x[f]), 0));
+const moneyFmt = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const money = v => moneyFmt.format(v);
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const dShort = s => s ? parseISO(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '';
+const dFull = s => s ? parseISO(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+const monthTitle = key => {
+  const [y, m] = key.split('-').map(Number);
+  const t = new Date(y, m - 1, 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(/\s*г\.?$/, '');
+  return t[0].toUpperCase() + t.slice(1);
+};
+const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const stamp = () => today().split('-').reverse().join('.');
+const initials = n => n.replace(/\./g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+const plural = (n, one, few, many) => {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
+};
+const shortGroup = g => { const s = g.replace(/\s*оркестр\s*$/i, '').trim() || g; return s[0].toUpperCase() + s.slice(1); };
+const ic = (paths, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+const I = {
+  overview: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
+  members: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.3 3.4-5 6.5-5s5.7 1.7 6.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.6 14.6c2.4.1 4.3 1.6 4.9 4.4"/>',
+  incomes: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v9M8 12.5l4 4 4-4"/>',
+  expenses: '<circle cx="12" cy="12" r="9"/><path d="M12 16.5v-9M8 11.5l4-4 4 4"/>',
+  settings: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+  down: '<path d="M12 5v14M6.5 13.5L12 19l5.5-5.5"/>',
+  up: '<path d="M12 19V5M6.5 10.5L12 5l5.5 5.5"/>',
+  warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>',
+  export: '<path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 17v2.5h15V17"/>',
+  share: '<path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 11.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7.5"/>',
+  backup: '<path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  restore: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
+  install: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3"/>',
+  chevron: '<path d="M9 6l6 6-6 6"/>',
+};
+const CATEGORIES = ['Инструменты и ремонт', 'Струны и комплектующие', 'Концерты и мероприятия', 'Костюмы', 'Печать и афиши', 'Ноты', 'Транспорт', 'Подарки и награды', 'Прочее'];
+const METHODS = ['Наличные', 'Перевод', 'Карта'];
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* недоступно — не страшно */ } },
+};
+
+// ─── Хранилище на телефоне (IndexedDB) ──────────────────────────────────────
+const IDB = {
+  db: null,
+  open() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('kassa-orkestra', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('kv');
+      req.onsuccess = () => resolve(this.db = req.result);
+      req.onerror = () => reject(req.error);
+    });
+  },
+  get(key) {
+    return new Promise((resolve, reject) => {
+      const q = this.db.transaction('kv').objectStore('kv').get(key);
+      q.onsuccess = () => resolve(q.result);
+      q.onerror = () => reject(q.error);
+    });
+  },
+  set(key, value) {
+    return new Promise((resolve, reject) => {
+      const t = this.db.transaction('kv', 'readwrite');
+      t.objectStore('kv').put(value, key);
+      t.oncomplete = () => resolve();
+      t.onerror = t.onabort = () => reject(t.error);
+    });
+  },
+};
+
+const DEFAULT_SETTINGS = {
+  org: 'Образцовый детский коллектив оркестр народных инструментов «Московия»',
+  year: '2026–2027', default_fee: 4000, opening_balance: 0, opening_note: '',
+};
+const FIELDS = {
+  members: { name: 'text', grp: 'text', fee: 'money', note: 'text', active: 'bool', sort: 'int' },
+  incomes: { date: 'date', member_id: 'ref', source: 'text', amount: 'money', method: 'text', comment: 'text' },
+  expenses: { date: 'date', title: 'text', category: 'text', amount: 'money', receipt: 'bool', buyer: 'text', comment: 'text' },
+};
+const DEFAULTS = {
+  members: { note: '', active: true, sort: 0 },
+  incomes: { member_id: null, source: '', method: 'Наличные', comment: '' },
+  expenses: { category: 'Прочее', receipt: false, buyer: '', comment: '' },
+};
+const REQUIRED = { members: ['name', 'grp', 'fee'], incomes: ['date', 'amount'], expenses: ['date', 'title', 'amount'] };
+const LABELS = { name: 'ФИО', grp: 'Группа', fee: 'Сумма взноса', date: 'Дата', amount: 'Сумма', title: 'Наименование' };
+
+let DATA = null;
+const META = { lastBackup: null, persisted: false };
+
+function parseMoney(v, label = 'Сумма') {
+  const s = String(v ?? '').replace(/[\s ₽]/g, '').replace(',', '.');
+  if (!/^-?\d+(\.\d+)?$/.test(s)) throw new Error(`${label}: некорректная сумма`);
+  return r2(Number(s));
+}
+
+function clean(table, p, partial = false, members = DATA.members) {
+  const out = {};
+  for (const [field, kind] of Object.entries(FIELDS[table])) {
+    if (!(field in p)) continue;
+    let v = p[field];
+    if (kind === 'text') v = String(v ?? '').trim();
+    else if (kind === 'money') {
+      v = parseMoney(v, LABELS[field]);
+      if (v < 0 || (field === 'amount' && v === 0)) throw new Error(`${LABELS[field]}: сумма должна быть больше нуля`);
+    } else if (kind === 'date') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v)) || isNaN(parseISO(String(v)))) throw new Error('Некорректная дата');
+    } else if (kind === 'bool') v = !!v;
+    else if (kind === 'int') v = parseInt(v, 10) || 0;
+    else if (kind === 'ref') {
+      v = v ? Number(v) : null;
+      if (v && !members.some(m => m.id === v)) throw new Error('Участник не найден');
+    }
+    out[field] = v;
+  }
+  if (!partial) for (const f of REQUIRED[table]) if (out[f] == null || out[f] === '') throw new Error(`Заполните поле «${LABELS[f]}»`);
+  const checksSource = !partial || ('member_id' in out && 'source' in out);
+  if (table === 'incomes' && checksSource && !out.member_id && !out.source) throw new Error('Укажите участника или источник поступления');
+  return out;
+}
+
+function sortData(d = DATA) {
+  d.members.sort((a, b) => a.sort - b.sort || a.id - b.id);
+  const byDate = (a, b) => b.date.localeCompare(a.date) || b.id - a.id;
+  d.incomes.sort(byDate);
+  d.expenses.sort(byDate);
+}
+
+async function commit() {
+  sortData();
+  try { await IDB.set('data', DATA); }
+  catch { throw new Error('Не удалось сохранить данные на телефоне'); }
+}
+
+const snapshot = () => structuredClone(DATA);
+const hasData = () => DATA.members.length || DATA.incomes.length || DATA.expenses.length;
+
+function saveSettings(p) {
+  const s = DATA.settings;
+  for (const k of ['org', 'year', 'opening_note']) if (k in p) s[k] = String(p[k] ?? '').trim();
+  if ('default_fee' in p) {
+    const v = parseMoney(p.default_fee, 'Взнос по умолчанию');
+    if (v <= 0) throw new Error('Сумма взноса по умолчанию должна быть больше нуля');
+    s.default_fee = v;
+  }
+  if ('opening_balance' in p) s.opening_balance = parseMoney(p.opening_balance, 'Остаток на начало года');
+}
+
+// Тот же интерфейс запросов, что у компьютерной версии, но данные — в телефоне.
+async function api(method, path, body) {
+  if (method === 'GET' && path === '/api/state') return snapshot();
+  const prev = structuredClone(DATA);
+  try {
+    if (method === 'PUT' && path === '/api/settings') saveSettings(body);
+    else {
+      const m = path.match(/^\/api\/(members|incomes|expenses)(?:\/(\d+))?$/);
+      if (!m) throw new Error('Неизвестная операция');
+      const table = m[1], id = m[2] ? Number(m[2]) : null, rows = DATA[table];
+      if (method === 'POST' && !id) {
+        const row = { ...DEFAULTS[table], ...clean(table, body) };
+        row.id = rows.reduce((a, r) => Math.max(a, r.id), 0) + 1;
+        if (table === 'members' && !('sort' in body)) row.sort = rows.reduce((a, r) => Math.max(a, r.sort), 0) + 1;
+        rows.push(row);
+      } else if (method === 'PUT' && id) {
+        const row = rows.find(r => r.id === id);
+        if (!row) throw new Error('Запись не найдена');
+        Object.assign(row, clean(table, body, true));
+      } else if (method === 'DELETE' && id) {
+        const i = rows.findIndex(r => r.id === id);
+        if (i < 0) throw new Error('Запись не найдена');
+        if (table === 'members') {
+          // История взносов остаётся: имя переносится в поле «источник».
+          for (const inc of DATA.incomes) if (inc.member_id === id) { inc.source = rows[i].name; inc.member_id = null; }
+        }
+        rows.splice(i, 1);
+      } else throw new Error('Неизвестная операция');
+    }
+    await commit();
+  } catch (e) {
+    DATA = prev;
+    throw e;
+  }
+  return snapshot();
+}
+
+// ─── Файлы: Excel, резервные копии ──────────────────────────────────────────
+async function saveFile(blob, name, share) {
+  if (share) {
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: name }); return true; }
+      catch (e) { if (e.name === 'AbortError') return false; }
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+  if (share) toast('Отправка недоступна — файл сохранён в «Загрузки»');
+  return true;
+}
+
+async function exportXlsx(share) {
+  const bytes = KassaXlsx.build(snapshot());
+  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  if (await saveFile(blob, `Касса оркестра ${DATA.settings.year} — ${stamp()}.xlsx`, share) && !share) toast('Excel-файл сохранён в «Загрузки»');
+}
+
+async function exportBackup(share) {
+  const payload = { format: 'kassa-orkestra', version: 1, exported: new Date().toISOString(), ...snapshot() };
+  const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+  if (!await saveFile(blob, `Касса оркестра — копия ${stamp()}.json`, share)) return;
+  META.lastBackup = new Date().toISOString();
+  await IDB.set('meta', { lastBackup: META.lastBackup }).catch(() => {});
+  if (!share) toast('Копия сохранена в «Загрузки»');
+  render();
+}
+
+function normalizeBackup(obj) {
+  if (!obj || obj.format !== 'kassa-orkestra' || !Array.isArray(obj.members) || !Array.isArray(obj.incomes) || !Array.isArray(obj.expenses)) {
+    throw new Error('Это не файл резервной копии кассы');
+  }
+  const d = { settings: { ...DEFAULT_SETTINGS }, members: [], incomes: [], expenses: [] };
+  const s = obj.settings || {};
+  for (const k of ['org', 'year', 'opening_note']) if (typeof s[k] === 'string') d.settings[k] = s[k];
+  for (const k of ['default_fee', 'opening_balance']) if (s[k] != null) d.settings[k] = parseMoney(s[k]);
+  for (const table of ['members', 'incomes', 'expenses']) {
+    const used = new Set();
+    obj[table].forEach((row, n) => {
+      let c;
+      try { c = { ...DEFAULTS[table], ...clean(table, row, false, d.members) }; }
+      catch (e) { throw new Error(`Ошибка в файле (${table}, запись ${n + 1}): ${e.message}`); }
+      c.id = Number.isInteger(row.id) && row.id > 0 && !used.has(row.id) ? row.id : 0;
+      used.add(c.id);
+      d[table].push(c);
+    });
+    let next = d[table].reduce((a, r) => Math.max(a, r.id), 0);
+    for (const r of d[table]) if (!r.id) r.id = ++next;
+  }
+  sortData(d);
+  return d;
+}
+
+async function importBackup(file) {
+  let obj;
+  try { obj = JSON.parse(await file.text()); } catch { throw new Error('Файл повреждён или это не резервная копия'); }
+  const next = normalizeBackup(obj);
+  const what = `${next.members.length} ${plural(next.members.length, 'участник', 'участника', 'участников')}, `
+    + `${next.incomes.length} ${plural(next.incomes.length, 'поступление', 'поступления', 'поступлений')}, `
+    + `${next.expenses.length} ${plural(next.expenses.length, 'расход', 'расхода', 'расходов')}.`;
+  if (hasData() && !await confirmDialog('Заменить данные?', `В файле: ${what} Текущие данные на телефоне будут заменены.`, 'Заменить')) return;
+  await IDB.set('before-import', DATA).catch(() => {});
+  const prev = DATA;
+  DATA = next;
+  try { await commit(); } catch (e) { DATA = prev; throw e; }
+  S.state = snapshot();
+  derive();
+  render(true);
+  toast(`Загружено: ${what}`);
+}
+
+// ─── Состояние ──────────────────────────────────────────────────────────────
+const S = { state: null, view: 'overview', grp: store.get('grp') || 'all', status: 'all', q: '' };
+let D = null;
+let installEvt = null;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function derive() {
+  const st = S.state, paid = new Map(), last = new Map();
+  for (const i of st.incomes) {
+    if (!i.member_id) continue;
+    paid.set(i.member_id, r2((paid.get(i.member_id) || 0) + i.amount));
+    if ((last.get(i.member_id) || '') < i.date) last.set(i.member_id, i.date);
+  }
+  const members = st.members.map(m => {
+    const p = paid.get(m.id) || 0;
+    const status = !m.active ? 'left' : m.fee === 0 ? 'free' : p >= m.fee ? 'paid' : p > 0 ? 'partial' : 'none';
+    return { ...m, paid: p, debt: m.active ? Math.max(r2(m.fee - p), 0) : 0, status, last: last.get(m.id) };
+  });
+  const groups = [...new Set(members.map(m => m.grp))];
+  const byGroup = groups.map(name => {
+    const ms = members.filter(m => m.grp === name && m.active);
+    return {
+      name, total: ms.length,
+      done: ms.filter(m => m.status === 'paid' || m.status === 'free').length,
+      debtors: ms.filter(m => m.debt > 0).length,
+      collected: sum(ms, m => Math.min(m.paid, m.fee)),
+      target: sum(ms, 'fee'),
+    };
+  });
+  const income = sum(st.incomes, 'amount'), expense = sum(st.expenses, 'amount');
+  D = {
+    members, groups, byGroup, income, expense,
+    byId: new Map(members.map(m => [m.id, m])),
+    balance: r2(st.settings.opening_balance + income - expense),
+    expected: sum(members, 'debt'),
+    debtors: members.filter(m => m.debt > 0).length,
+    collected: sum(byGroup, 'collected'),
+    target: sum(byGroup, 'target'),
+  };
+  if (S.grp !== 'all' && !groups.includes(S.grp)) S.grp = 'all';
+}
+
+const whoOf = inc => (inc.member_id && D.byId.get(inc.member_id)?.name) || inc.source || 'Без источника';
+
+// ─── Разделы ────────────────────────────────────────────────────────────────
+const VIEWS = {
+  overview: {
+    title: 'Обзор',
+    sub: () => `${S.state.settings.year} учебный год`,
+    actions: () => `<button class="btn btn-secondary" data-action="new-income">${ic(I.down)}Приход</button>
+                    <button class="btn btn-primary" data-action="new-expense">${ic(I.up)}Расход</button>`,
+    render: viewOverview,
+  },
+  members: {
+    title: 'Участники',
+    sub: () => { const n = D.members.filter(m => m.active).length; return `${n} ${plural(n, 'участник', 'участника', 'участников')} · ${D.debtors} ${plural(D.debtors, 'должник', 'должника', 'должников')}`; },
+    actions: () => searchBox('Поиск по ФИО') + `<button class="btn btn-primary" data-action="new-member" aria-label="Новый участник">${ic(I.plus)}Участник</button>`,
+    render: viewMembers,
+  },
+  incomes: {
+    title: 'Приход',
+    sub: () => `${money(D.income)} · ${S.state.incomes.length} ${plural(S.state.incomes.length, 'поступление', 'поступления', 'поступлений')}`,
+    actions: () => searchBox('Поиск') + `<button class="btn btn-primary" data-action="new-income" aria-label="Новое поступление">${ic(I.plus)}Приход</button>`,
+    render: viewIncomes,
+  },
+  expenses: {
+    title: 'Расход',
+    sub: () => `${money(D.expense)} · ${S.state.expenses.length} ${plural(S.state.expenses.length, 'покупка', 'покупки', 'покупок')}`,
+    actions: () => searchBox('Поиск') + `<button class="btn btn-primary" data-action="new-expense" aria-label="Новый расход">${ic(I.plus)}Расход</button>`,
+    render: viewExpenses,
+  },
+  settings: {
+    title: 'Настройки',
+    sub: () => 'Коллектив, касса и данные',
+    actions: () => '',
+    render: viewSettings,
+  },
+};
+
+const searchBox = ph => `<label class="search">${ic(I.search)}<input type="search" id="q" placeholder="${ph}" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search"></label>`;
+
+function renderNav() {
+  const badges = { members: D.debtors || '', incomes: S.state.incomes.length || '', expenses: S.state.expenses.length || '' };
+  $('#nav').innerHTML = Object.entries(VIEWS).map(([k, v]) =>
+    `<a class="nav-item ${S.view === k ? 'active' : ''}" href="#${k}" ${S.view === k ? 'aria-current="page"' : ''}>${ic(I[k])}<span>${v.title}</span><span class="nav-badge">${badges[k] ?? ''}</span></a>`).join('');
+  $('#brand-sub').textContent = S.state.settings.year + ' уч. год';
+}
+
+function renderToolbar() {
+  const v = VIEWS[S.view];
+  $('#toolbar').innerHTML = `<div><h1>${v.title}</h1><div class="subtitle">${esc(v.sub())}</div></div><div class="actions">${v.actions()}</div>`;
+}
+
+function renderView(animate = false) {
+  const el = $('#view');
+  el.innerHTML = VIEWS[S.view].render();
+  if (animate) { el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in'); }
+}
+
+function render(animate = false) {
+  document.title = `${VIEWS[S.view].title} — Касса оркестра`;
+  renderNav(); renderToolbar(); renderView(animate);
+}
+
+function ring(p) {
+  const r = 36, c = 2 * Math.PI * r, v = Math.max(0, Math.min(p, 1));
+  return `<svg class="ring" viewBox="0 0 88 88" role="img" aria-label="Собрано ${Math.round(v * 100)}% взносов">
+    <circle cx="44" cy="44" r="${r}" class="ring-track"/>
+    ${v > 0 ? `<circle cx="44" cy="44" r="${r}" class="ring-val" stroke-dasharray="${(c * v).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 44 44)"/>` : ''}
+  </svg>`;
+}
+
+function opRow(op) {
+  const inc = op.kind === 'in';
+  const title = inc ? whoOf(op) : op.title;
+  const sub = [dShort(op.date), inc ? op.method : op.category].filter(Boolean).join(' · ');
+  return `<div class="li" data-action="${inc ? 'edit-income' : 'edit-expense'}" data-id="${op.id}">
+    <div class="op ${op.kind}">${ic(inc ? I.down : I.up)}</div>
+    <div class="li-main"><div class="li-title">${esc(title)}</div><div class="li-sub">${esc(sub)}</div></div>
+    <div class="${inc ? 'sum-in' : 'sum-out'}">${inc ? '+' : '−'}${money(op.amount)}</div>
+  </div>`;
+}
+
+function welcome() {
+  return `<div class="stack">
+    <section class="card">
+      <div class="card-h"><h2 class="card-t">Добро пожаловать</h2></div>
+      <p>Данные хранятся только на этом телефоне. Чтобы перенести ведомость с компьютера, откройте файл
+      «Данные для телефона.json»: пришлите его себе в мессенджер или скопируйте в «Загрузки».</p>
+      <div class="row-btns">
+        <button class="btn btn-primary" data-action="import">${ic(I.restore)}Открыть файл с данными</button>
+        <a class="btn btn-secondary" href="#members">Начать с нуля</a>
+      </div>
+    </section>
+    ${installCallout()}
+  </div>`;
+}
+
+function installCallout() {
+  if (!installEvt || standalone()) return '';
+  return `<div class="callout info">${ic(I.install)}<div>Установите кассу на рабочий стол — она будет открываться как обычное приложение и работать без интернета.</div>
+    <button class="btn btn-sm btn-primary" data-action="install">Установить</button></div>`;
+}
+
+function backupCallout() {
+  if (!hasData()) return '';
+  const days = META.lastBackup ? Math.floor((Date.now() - Date.parse(META.lastBackup)) / 86400000) : null;
+  if (days !== null && days < 14) return '';
+  const text = days === null ? 'Резервная копия ещё не делалась.' : `Резервная копия не делалась ${days} ${plural(days, 'день', 'дня', 'дней')}.`;
+  return `<div class="callout">${ic(I.backup)}<div>${text} Данные хранятся только на телефоне — отправьте копию себе в облако или мессенджер.</div>
+    <button class="btn btn-sm btn-secondary" data-action="backup-share">Сделать</button></div>`;
+}
+
+function viewOverview() {
+  if (!hasData()) return welcome();
+  const s = S.state.settings;
+  const pct = D.target ? D.collected / D.target : 0;
+  const note = s.opening_note ? `<div class="callout">${ic(I.warn)}<div>${esc(s.opening_note)}</div><a class="btn btn-sm btn-secondary" href="#settings">Указать</a></div>` : '';
+
+  const groups = D.byGroup.map(g => {
+    const p = g.target ? Math.min(g.collected / g.target, 1) : 0;
+    return `<div class="grp-row">
+      <div class="grp-top"><span class="grp-name">${esc(g.name)}</span><span class="muted">${g.done} из ${g.total} сдали</span></div>
+      <div class="bar" title="${esc(g.name)}: ${money(g.collected)} из ${money(g.target)}"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
+      <div class="grp-meta"><span>${money(g.collected)} из ${money(g.target)} · ${Math.round(p * 100)}%</span>
+        ${g.debtors ? `<a href="#members" data-action="debtors" data-grp="${esc(g.name)}">${g.debtors} ${plural(g.debtors, 'должник', 'должника', 'должников')}</a>` : '<span class="pos">Все сдали</span>'}</div>
+    </div>`;
+  }).join('') || '<div class="muted">Добавьте участников, чтобы видеть прогресс сбора.</div>';
+
+  const cats = new Map();
+  for (const e of S.state.expenses) cats.set(e.category, r2((cats.get(e.category) || 0) + e.amount));
+  const catRows = [...cats].sort((a, b) => b[1] - a[1]);
+  const maxCat = catRows[0]?.[1] || 1;
+  const catHtml = catRows.map(([name, v]) => `<div class="cat" title="${esc(name)}: ${money(v)} (${Math.round(v / D.expense * 100)}% расходов)">
+      <span class="cat-name">${esc(name)}</span><div class="bar"><i style="width:${(v / maxCat * 100).toFixed(1)}%"></i></div><span class="cat-val">${money(v)}</span></div>`).join('')
+    || '<div class="muted">Расходов пока нет.</div>';
+
+  const ops = [...S.state.incomes.map(i => ({ ...i, kind: 'in' })), ...S.state.expenses.map(e => ({ ...e, kind: 'out' }))]
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).slice(0, 8);
+
+  return `<div class="stack">
+    ${installCallout()}${backupCallout()}${note}
+    <section class="card hero">
+      <div>
+        <div class="eyebrow">Остаток в кассе</div>
+        <div class="hero-value ${D.balance < 0 ? 'neg' : ''}">${money(D.balance)}</div>
+        <div class="hero-meta"><span>На начало года <b>${money(s.opening_balance)}</b></span><span>Приход <b>+${money(D.income)}</b></span><span>Расход <b>−${money(D.expense)}</b></span></div>
+      </div>
+      <div class="ring-box">${ring(pct)}<div class="ring-txt"><b>${Math.round(pct * 100)}%</b>взносов собрано</div></div>
+    </section>
+    <div class="grid kpis">
+      <section class="card stat"><div class="eyebrow">Поступило</div><div class="value">${money(D.income)}</div><div class="hint">${S.state.incomes.length} ${plural(S.state.incomes.length, 'поступление', 'поступления', 'поступлений')}</div></section>
+      <section class="card stat"><div class="eyebrow">Израсходовано</div><div class="value">${money(D.expense)}</div><div class="hint">${S.state.expenses.length} ${plural(S.state.expenses.length, 'покупка', 'покупки', 'покупок')}</div></section>
+      <section class="card stat"><div class="eyebrow">Ожидается к сбору</div><div class="value">${money(D.expected)}</div>
+        ${D.debtors ? `<a class="hint" href="#members" data-action="debtors" data-grp="all">${D.debtors} ${plural(D.debtors, 'должник', 'должника', 'должников')} →</a>` : '<div class="hint">Долгов нет</div>'}</section>
+    </div>
+    <div class="grid two">
+      <div class="stack">
+        <section class="card"><div class="card-h"><h2 class="card-t">Сбор взносов</h2></div>${groups}</section>
+        <section class="card"><div class="card-h"><h2 class="card-t">Расходы по категориям</h2><span class="muted">${money(D.expense)}</span></div>${catHtml}</section>
+      </div>
+      <section class="card"><div class="card-h"><h2 class="card-t">Последние операции</h2></div>
+        ${ops.length ? `<div class="list">${ops.map(opRow).join('')}</div>` : '<div class="muted" style="padding-bottom:4px">Операций пока нет.</div>'}</section>
+    </div>
+  </div>`;
+}
+
+const STATUS = { paid: 'Сдано', partial: 'Частично', none: 'Не сдано', left: 'Выбыл', free: 'Освобождён' };
+
+function seg(key, items, current) {
+  return `<div class="seg" role="group">${items.map(([v, label]) =>
+    `<button type="button" class="${v === current ? 'on' : ''}" aria-pressed="${v === current}" data-action="seg" data-key="${key}" data-value="${esc(v)}">${esc(label)}</button>`).join('')}</div>`;
+}
+
+function memberRow(m) {
+  const sub = [m.last ? `Взнос ${dShort(m.last)}` : '', m.debt > 0 && m.paid > 0 ? `осталось ${money(m.debt)}` : '', m.note].filter(Boolean).join(' · ');
+  return `<div class="li" data-action="edit-member" data-id="${m.id}">
+    <div class="av">${esc(initials(m.name))}</div>
+    <div class="li-main"><div class="li-title">${esc(m.name)}</div><div class="li-sub">${esc(sub) || STATUS[m.status]}</div></div>
+    <span class="dot ${m.status}" title="${STATUS[m.status]}" aria-label="${STATUS[m.status]}"></span>
+    <div class="li-amt"><b>${money(m.paid)}</b><span>из ${money(m.fee)}</span></div>
+    <div class="pill-slot"><span class="pill ${m.status}">${STATUS[m.status]}</span></div>
+    <div class="act-slot">${m.debt > 0 ? `<button class="btn btn-sm btn-tinted" data-action="pay" data-id="${m.id}">Внести</button>` : ''}</div>
+  </div>`;
+}
+
+function viewMembers() {
+  const q = S.q.trim().toLowerCase();
+  const list = D.members.filter(m =>
+    (S.grp === 'all' || m.grp === S.grp) &&
+    (S.status === 'all' || (S.status === 'debt' ? m.debt > 0 : m.status === 'paid' || m.status === 'free')) &&
+    (!q || m.name.toLowerCase().includes(q) || m.note.toLowerCase().includes(q)));
+  const filters = `<div class="filters">
+    ${D.groups.length > 1 ? seg('grp', [['all', 'Все группы'], ...D.groups.map(g => [g, shortGroup(g)])], S.grp) : ''}
+    ${seg('status', [['all', 'Все'], ['debt', 'Должники'], ['paid', 'Сдали']], S.status)}
+  </div>`;
+  if (!D.members.length) return filters + `<div class="empty"><b>Участников пока нет</b>Нажмите «Участник», чтобы добавить первого.</div>`;
+  if (!list.length) return filters + `<div class="empty"><b>Ничего не найдено</b>Измените фильтр или строку поиска.</div>`;
+  const sections = D.groups.map(g => {
+    const ms = list.filter(m => m.grp === g);
+    if (!ms.length) return '';
+    const st = D.byGroup.find(x => x.name === g);
+    return `<div class="section-h"><span class="section-t">${esc(g)}</span><span class="section-m">${st.done} из ${st.total} сдали · ${money(st.collected)}</span></div>
+      <div class="list">${ms.map(memberRow).join('')}</div>`;
+  }).join('');
+  return filters + sections;
+}
+
+function byMonth(items, rowFn, filterFn) {
+  const q = S.q.trim().toLowerCase();
+  const list = items.filter(x => !q || filterFn(x).toLowerCase().includes(q));
+  if (!list.length) return null;
+  const months = new Map();
+  for (const x of list) { const k = x.date.slice(0, 7); (months.get(k) || months.set(k, []).get(k)).push(x); }
+  return [...months].map(([k, xs]) => `<div class="section-h"><span class="section-t">${monthTitle(k)}</span><span class="section-m">${money(sum(xs, 'amount'))}</span></div>
+    <div class="list">${xs.map(rowFn).join('')}</div>`).join('');
+}
+
+function viewIncomes() {
+  const html = byMonth(S.state.incomes, i => {
+    const sub = [dShort(i.date), i.method, i.comment].filter(Boolean).join(' · ');
+    const m = i.member_id && D.byId.get(i.member_id);
+    return `<div class="li" data-action="edit-income" data-id="${i.id}">
+      <div class="op in">${ic(I.down)}</div>
+      <div class="li-main"><div class="li-title">${esc(whoOf(i))}${m ? ` <span class="muted" style="font-weight:400">· ${esc(shortGroup(m.grp))}</span>` : ''}</div><div class="li-sub">${esc(sub)}</div></div>
+      <div class="sum-in">+${money(i.amount)}</div>
+    </div>`;
+  }, i => `${whoOf(i)} ${i.comment} ${i.method}`);
+  if (html) return html;
+  return S.state.incomes.length
+    ? `<div class="empty"><b>Ничего не найдено</b>Попробуйте другой запрос.</div>`
+    : `<div class="empty"><b>Поступлений пока нет</b>Взносы удобнее вносить кнопкой «Внести» в разделе «Участники».</div>`;
+}
+
+function viewExpenses() {
+  const html = byMonth(S.state.expenses, e => {
+    const sub = [dShort(e.date), e.category, e.receipt ? '' : 'без чека', e.buyer].filter(Boolean).join(' · ');
+    return `<div class="li" data-action="edit-expense" data-id="${e.id}">
+      <div class="op out">${ic(I.up)}</div>
+      <div class="li-main"><div class="li-title">${esc(e.title)}</div><div class="li-sub">${esc(sub)}</div></div>
+      <div class="pill-slot">${e.receipt ? '<span class="pill plain">Чек есть</span>' : '<span class="pill partial">Без чека</span>'}</div>
+      <div class="sum-out">−${money(e.amount)}</div>
+    </div>`;
+  }, e => `${e.title} ${e.category} ${e.buyer} ${e.comment}`);
+  if (html) return html;
+  return S.state.expenses.length
+    ? `<div class="empty"><b>Ничего не найдено</b>Попробуйте другой запрос.</div>`
+    : `<div class="empty"><b>Расходов пока нет</b>Нажмите «Расход», чтобы записать покупку.</div>`;
+}
+
+// ─── Поля форм ──────────────────────────────────────────────────────────────
+const row = (label, control, cls = '', attrs = '') => `<label class="f-row ${cls}" ${attrs}><span class="f-label">${label}</span>${control}</label>`;
+const rowDiv = (label, control) => `<div class="f-row"><span class="f-label f-label-auto">${label}</span>${control}</div>`;
+const input = (name, value, attrs = '') => `<input name="${name}" value="${esc(value)}" autocomplete="off" ${attrs}>`;
+const moneyInput = (name, value) => input(name, value === '' || value == null ? '' : String(value).replace('.', ','), 'inputmode="decimal" placeholder="0 ₽"');
+const toggle = (name, on) => `<input type="checkbox" class="switch" name="${name}" ${on ? 'checked' : ''}>`;
+const textarea = (name, value, ph = '') => `<textarea name="${name}" rows="2" placeholder="${ph}">${esc(value)}</textarea>`;
+const segRadio = (name, opts, cur) => `<div class="seg">${opts.map(o => `<label><input type="radio" name="${name}" value="${esc(o)}" ${o === cur ? 'checked' : ''}><span>${esc(o)}</span></label>`).join('')}</div>`;
+const group = (rows, title = '') => `${title ? `<div class="group-title">${title}</div>` : '<div style="height:18px"></div>'}<div class="form-group">${rows.join('')}</div>`;
+const datalist = (id, items) => `<datalist id="${id}">${[...new Set(items)].map(x => `<option value="${esc(x)}">`).join('')}</datalist>`;
+const linkRow = (action, icon, label, extra = '') => `<div class="f-row link ${extra}" role="button" tabindex="0" data-action="${action}">${ic(icon)}<span>${label}</span>${ic(I.chevron, 'sm')}</div>`;
+
+function formData(form) {
+  const o = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === 'checkbox') o[el.name] = el.checked;
+    else if (el.type === 'radio') { if (el.checked) o[el.name] = el.value; }
+    else o[el.name] = el.value;
+  }
+  return o;
+}
+
+// ─── Окна (кнопка «Назад» на Android закрывает шторку) ──────────────────────
+let sheetCtx = null;
+const sheetOpen = () => $('#sheet-bd').classList.contains('open');
+
+function openSheet({ title, body, submit = 'Готово', onSubmit, onDelete, deleteLabel = 'Удалить' }) {
+  sheetCtx = { onSubmit, onDelete };
+  $('#sheet').innerHTML = `<form class="sheet-form" novalidate>
+    <div class="sheet-head"><button type="button" class="btn-plain" data-action="close-sheet">Отменить</button>
+      <div class="sheet-title" id="sheet-title">${esc(title)}</div><button type="submit" class="btn-plain strong">${submit}</button></div>
+    ${body}
+    ${onDelete ? `<button type="button" class="sheet-danger" data-action="sheet-delete">${deleteLabel}</button>` : ''}
+  </form>`;
+  $('#sheet').setAttribute('aria-labelledby', 'sheet-title');
+  $('#sheet').scrollTop = 0;
+  if (!sheetOpen()) history.pushState({ sheet: true }, '');
+  $('#sheet-bd').classList.add('open');
+  // На телефоне не открываем клавиатуру сразу — сначала видна вся карточка.
+  if (matchMedia('(min-width: 761px)').matches) {
+    setTimeout(() => $('#sheet').querySelector('input:not([type=checkbox]):not([type=radio]), select')?.focus(), 60);
+  }
+}
+
+function closeSheet(fromHistory = false) {
+  if (!sheetOpen()) return;
+  $('#sheet-bd').classList.remove('open');
+  sheetCtx = null;
+  document.activeElement?.blur();
+  if (!fromHistory && history.state?.sheet) history.back();
+}
+
+function confirmDialog(title, text, ok = 'Удалить') {
+  return new Promise(resolve => {
+    const bd = $('#alert-bd');
+    $('#alert').innerHTML = `<div class="alert-body"><b>${esc(title)}</b><p>${esc(text)}</p></div>
+      <div class="alert-btns"><button type="button" data-r="0">Отменить</button><button type="button" data-r="1">${esc(ok)}</button></div>`;
+    bd.classList.add('open');
+    const done = v => { bd.classList.remove('open'); bd.onclick = null; S.alertDone = null; resolve(v); };
+    S.alertDone = done;
+    bd.onclick = e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r === '1'); else if (e.target === bd) done(false); };
+  });
+}
+
+let toastTimer;
+function toast(msg, err = false) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.toggle('err', err);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), err ? 4200 : 2400);
+}
+
+async function mutate(method, path, body, msg) {
+  S.state = await api(method, path, body);
+  derive();
+  render();
+  if (msg) toast(msg);
+}
+
+// ─── Карточки записей ───────────────────────────────────────────────────────
+function memberSheet(id) {
+  const m = id ? D.byId.get(id) : null;
+  const s = S.state.settings;
+  const grp = m?.grp || (S.grp !== 'all' ? S.grp : D.groups[0] || 'Старший оркестр');
+  const paidList = m ? S.state.incomes.filter(i => i.member_id === id) : [];
+  const body = group([
+    row('ФИО', input('name', m?.name || '', 'placeholder="Фамилия Имя" required autocapitalize="words"')),
+    row('Группа', input('grp', grp, 'list="groups-dl" placeholder="Например, Старший оркестр"')),
+    row('Взнос за год', moneyInput('fee', m ? m.fee : s.default_fee)),
+  ]) + group([
+    row('Участвует', toggle('active', !m || m.active)),
+    row('Примечание', textarea('note', m?.note || '', 'Скидка, льгота, контакт родителя…'), 'tall'),
+  ]) + (m ? `<div class="group-title">Взносы · ${money(m.paid)} из ${money(m.fee)}</div>
+      ${paidList.length ? `<div class="list">${paidList.map(i => `<div class="li" data-action="edit-income" data-id="${i.id}">
+        <div class="li-main"><div class="li-title">${dFull(i.date)}</div><div class="li-sub">${esc([i.method, i.comment].filter(Boolean).join(' · '))}</div></div>
+        <div class="sum-in">+${money(i.amount)}</div></div>`).join('')}</div>` : '<div class="f-hint">Взносов ещё не было.</div>'}
+      ${m.debt > 0 ? `<div style="padding:12px 16px 0"><button type="button" class="btn btn-tinted btn-block" style="height:44px" data-action="pay" data-id="${m.id}">Внести ${money(m.debt)}</button></div>` : ''}` : '')
+    + datalist('groups-dl', [...D.groups, 'Старший оркестр', 'Младший оркестр']);
+
+  openSheet({
+    title: m ? 'Участник' : 'Новый участник',
+    body,
+    onSubmit: data => mutate(m ? 'PUT' : 'POST', `/api/members${m ? '/' + id : ''}`, data, m ? 'Сохранено' : 'Участник добавлен'),
+    onDelete: m ? async () => {
+      if (!await confirmDialog(`Удалить «${m.name}»?`, 'Внесённые взносы останутся в журнале прихода. Если участник просто выбыл — лучше выключить «Участвует».')) return false;
+      await mutate('DELETE', `/api/members/${id}`, undefined, 'Участник удалён');
+    } : null,
+  });
+}
+
+function incomeSheet(id, memberId) {
+  const inc = id ? S.state.incomes.find(i => i.id === id) : null;
+  const mid = inc ? inc.member_id : memberId ?? null;
+  const mem = mid ? D.byId.get(mid) : null;
+  const amount = inc ? inc.amount : mem ? (mem.debt || mem.fee) : '';
+  const opts = D.groups.map(g => {
+    const ms = D.members.filter(m => m.grp === g && (m.active || m.id === mid));
+    return ms.length ? `<optgroup label="${esc(g)}">${ms.map(m => `<option value="${m.id}" ${m.id === mid ? 'selected' : ''}>${esc(m.name)}${m.debt > 0 ? ` — долг ${money(m.debt)}` : ''}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+  const body = group([
+    row('Дата', input('date', inc?.date || today(), 'type="date" required')),
+    row('От кого', `<select name="member_id"><option value="">Другое поступление…</option>${opts}</select>`),
+    row('Источник', input('source', inc?.source || '', 'placeholder="Спонсор, концерт, грант…"'), 'src-row', mid ? 'hidden' : ''),
+    row('Сумма', moneyInput('amount', amount)),
+  ]) + group([
+    rowDiv('Способ', segRadio('method', METHODS, inc?.method || 'Наличные')),
+    row('Комментарий', textarea('comment', inc?.comment || ''), 'tall'),
+  ]);
+  openSheet({
+    title: inc ? 'Поступление' : 'Новое поступление',
+    body,
+    submit: inc ? 'Готово' : 'Добавить',
+    onSubmit: data => {
+      if (data.member_id) data.source = '';
+      return mutate(inc ? 'PUT' : 'POST', `/api/incomes${inc ? '/' + id : ''}`, data, inc ? 'Сохранено' : `Принято ${money(parseMoney(data.amount))}`);
+    },
+    onDelete: inc ? async () => {
+      if (!await confirmDialog('Удалить поступление?', `${whoOf(inc)}, ${money(inc.amount)}. Это действие нельзя отменить.`)) return false;
+      await mutate('DELETE', `/api/incomes/${id}`, undefined, 'Поступление удалено');
+    } : null,
+  });
+  S.amountTouched = !!inc;
+}
+
+function expenseSheet(id) {
+  const e = id ? S.state.expenses.find(x => x.id === id) : null;
+  const cats = [...CATEGORIES, ...S.state.expenses.map(x => x.category)];
+  const buyers = S.state.expenses.map(x => x.buyer).filter(Boolean);
+  const body = group([
+    row('Дата', input('date', e?.date || today(), 'type="date" required')),
+    row('Наименование', input('title', e?.title || '', 'placeholder="Что купили" required autocapitalize="sentences"')),
+    row('Категория', input('category', e?.category || 'Прочее', 'list="cats-dl"')),
+    row('Сумма', moneyInput('amount', e?.amount ?? '')),
+  ]) + group([
+    row('Кто купил', input('buyer', e?.buyer || '', 'list="buyers-dl" placeholder="ФИО"')),
+    row('Чек сохранён', toggle('receipt', e?.receipt)),
+    row('Комментарий', textarea('comment', e?.comment || ''), 'tall'),
+  ]) + '<div class="f-hint">Сфотографируйте чек и сохраните его: по чекам вы отчитываетесь перед родителями.</div>'
+    + datalist('cats-dl', cats) + datalist('buyers-dl', buyers);
+  openSheet({
+    title: e ? 'Расход' : 'Новый расход',
+    body,
+    submit: e ? 'Готово' : 'Добавить',
+    onSubmit: data => mutate(e ? 'PUT' : 'POST', `/api/expenses${e ? '/' + id : ''}`, data, e ? 'Сохранено' : 'Расход записан'),
+    onDelete: e ? async () => {
+      if (!await confirmDialog('Удалить расход?', `${e.title}, ${money(e.amount)}. Это действие нельзя отменить.`)) return false;
+      await mutate('DELETE', `/api/expenses/${id}`, undefined, 'Расход удалён');
+    } : null,
+  });
+}
+
+function viewSettings() {
+  const s = S.state.settings;
+  const last = META.lastBackup ? new Date(META.lastBackup).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'ещё не делалась';
+  return `<form id="settings-form" class="settings" novalidate>
+    ${group([
+      row('Коллектив', input('org', s.org)),
+      row('Учебный год', input('year', s.year, 'placeholder="2026–2027"')),
+    ], 'Коллектив')}
+    ${group([
+      row('Взнос по умолчанию', moneyInput('default_fee', s.default_fee)),
+      row('Остаток на начало года', moneyInput('opening_balance', s.opening_balance)),
+      row('Примечание', textarea('opening_note', s.opening_note, 'Откуда взялся остаток, что нужно уточнить…'), 'tall'),
+    ], 'Касса')}
+    <div class="f-hint">Остаток на начало года — деньги, перешедшие с прошлого учебного года. Когда уточните, очистите примечание: напоминание на «Обзоре» пропадёт.</div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Сохранить</button></div>
+    ${group([
+      linkRow('export-xlsx', I.export, 'Сохранить в Excel'),
+      linkRow('export-xlsx-share', I.share, 'Отправить Excel'),
+    ], 'Отчёт — ведомость с подписями, приход, расход, сводка')}
+    ${group([
+      linkRow('backup-share', I.share, 'Отправить резервную копию'),
+      linkRow('backup', I.backup, 'Сохранить копию в «Загрузки»'),
+      linkRow('import', I.restore, 'Восстановить из копии'),
+    ], 'Резервная копия')}
+    <div class="f-hint">Последняя копия: ${esc(last)}. Данные хранятся только на этом телефоне${META.persisted ? ' и защищены от автоочистки' : ''}.
+      Если удалить приложение или очистить данные Chrome, без копии они пропадут — отправляйте копию себе в облако или мессенджер хотя бы раз в две недели.
+      Эту же копию можно открыть на другом телефоне.</div>
+    ${installEvt && !standalone() ? group([linkRow('install', I.install, 'Установить на рабочий стол')], 'Приложение') : ''}
+  </form>`;
+}
+
+// ─── События ────────────────────────────────────────────────────────────────
+const safely = fn => async (...args) => { try { await fn(...args); } catch (err) { toast(err.message, true); } };
+const ACTIONS = {
+  'new-member': () => memberSheet(null),
+  'edit-member': el => memberSheet(+el.dataset.id),
+  'new-income': () => incomeSheet(null, null),
+  'edit-income': el => incomeSheet(+el.dataset.id),
+  'pay': el => incomeSheet(null, +el.dataset.id),
+  'new-expense': () => expenseSheet(null),
+  'edit-expense': el => expenseSheet(+el.dataset.id),
+  'close-sheet': () => closeSheet(),
+  'seg': el => {
+    S[el.dataset.key] = el.dataset.value;
+    if (el.dataset.key === 'grp') store.set('grp', el.dataset.value);
+    renderView();
+  },
+  'debtors': (el, e) => {
+    e.preventDefault();
+    S.grp = el.dataset.grp; S.status = 'debt'; S.q = '';
+    if (location.hash === '#members') { S.view = 'members'; render(true); } else location.hash = '#members';
+  },
+  'sheet-delete': safely(async () => { if (await sheetCtx.onDelete() !== false) closeSheet(); }),
+  'export-xlsx': safely(() => exportXlsx(false)),
+  'export-xlsx-share': safely(() => exportXlsx(true)),
+  'backup': safely(() => exportBackup(false)),
+  'backup-share': safely(() => exportBackup(true)),
+  'import': () => { const f = $('#import-file'); f.value = ''; f.click(); },
+  'install': safely(async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    await installEvt.userChoice;
+    installEvt = null;
+    render();
+  }),
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if (!el || !ACTIONS[el.dataset.action]) return;
+  e.stopPropagation();
+  ACTIONS[el.dataset.action](el, e);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (S.alertDone) S.alertDone(false);
+    else if (sheetCtx) closeSheet();
+  } else if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button][data-action]')) {
+    e.preventDefault(); e.target.click();
+  } else if (e.key === '/' && !e.target.closest('input, textarea, select') && $('#q')) {
+    e.preventDefault(); $('#q').focus();
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'q') { S.q = e.target.value; renderView(); }
+  if (e.target.name === 'amount') S.amountTouched = true;
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'import-file') {
+    const file = e.target.files[0];
+    if (file) safely(importBackup)(file);
+    return;
+  }
+  if (e.target.name !== 'member_id' || !sheetCtx) return;
+  const mid = +e.target.value || null;
+  const form = e.target.form;
+  form.querySelector('.src-row').hidden = !!mid;
+  if (mid && !S.amountTouched) {
+    const m = D.byId.get(mid);
+    form.elements.amount.value = String(m.debt || m.fee).replace('.', ',');
+  }
+});
+
+document.addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('[type=submit]');
+  btn.disabled = true;
+  try {
+    if (form.id === 'settings-form') await mutate('PUT', '/api/settings', formData(form), 'Настройки сохранены');
+    else if (sheetCtx) { await sheetCtx.onSubmit(formData(form)); closeSheet(); }
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#sheet-bd').addEventListener('mousedown', e => { if (e.target.id === 'sheet-bd') closeSheet(); });
+
+window.addEventListener('popstate', () => {
+  if (S.alertDone) {
+    // «Назад» при открытом вопросе отменяет его, а шторка остаётся.
+    S.alertDone(false);
+    if (sheetOpen()) history.pushState({ sheet: true }, '');
+    return;
+  }
+  if (sheetOpen()) closeSheet(true);
+});
+
+window.addEventListener('hashchange', () => {
+  const v = location.hash.slice(1);
+  S.view = VIEWS[v] ? v : 'overview';
+  S.q = '';
+  if (S.view !== 'members') S.status = 'all';
+  if (sheetOpen()) closeSheet(true);
+  render(true);
+  window.scrollTo({ top: 0 });
+});
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  installEvt = e;
+  if (S.state && (S.view === 'overview' || S.view === 'settings')) render();
+});
+window.addEventListener('appinstalled', () => { installEvt = null; if (S.state) render(); toast('Касса установлена на рабочий стол'); });
+
+(async function boot() {
+  const v = location.hash.slice(1);
+  S.view = VIEWS[v] ? v : 'overview';
+  try {
+    await IDB.open();
+    const saved = await IDB.get('data');
+    DATA = saved || { settings: { ...DEFAULT_SETTINGS }, members: [], incomes: [], expenses: [] };
+    DATA.settings = { ...DEFAULT_SETTINGS, ...DATA.settings };
+    sortData();
+    META.lastBackup = (await IDB.get('meta'))?.lastBackup || null;
+    S.state = snapshot();
+    derive();
+    render(true);
+  } catch (err) {
+    $('#view').innerHTML = `<div class="empty"><b>Не удалось открыть хранилище</b>${esc(err.message || String(err))}<br>Возможно, браузер в режиме инкогнито.</div>`;
+    return;
+  }
+  navigator.storage?.persist?.().then(ok => { META.persisted = ok; }).catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
